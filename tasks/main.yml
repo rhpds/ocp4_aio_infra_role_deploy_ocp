@@ -8,4 +8,4 @@
 
 - name: deploy SNO cluster
   import_tasks: deploy_cluster_sno_iso.yml
-  when: deploy_type == 'sno-iso'
+  when: deploy_type == 'sno'
