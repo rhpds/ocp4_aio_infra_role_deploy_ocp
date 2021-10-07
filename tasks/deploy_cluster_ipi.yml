@@ -187,7 +187,7 @@
     msg: |
       You can watch the OpenShift installation logs by opening the following URL:
 
-      http://{{ groups['target'][0] }}:9001
+      http://{{ aio_host_ip_address }}:9001
   debug:
     msg: "{{ msg.split('\n') }}"
 
