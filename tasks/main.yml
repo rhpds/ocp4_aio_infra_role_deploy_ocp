@@ -1,11 +1,11 @@
 - name: Deploy UPI cluster
   import_tasks: deploy_cluster_upi.yml
-  when: deploy_type == 'upi'
+  when: ocp4_aio_deploy_type == 'upi'
 
 - name: Deploy IPI cluster
   import_tasks: deploy_cluster_ipi.yml
-  when: deploy_type == 'ipi'
+  when: ocp4_aio_deploy_type == 'ipi'
 
 - name: deploy SNO cluster
   import_tasks: deploy_cluster_sno_iso.yml
-  when: deploy_type == 'sno'
+  when: ocp4_aio_deploy_type == 'sno'
