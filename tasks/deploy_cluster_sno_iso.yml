@@ -54,7 +54,7 @@
     path: /root/lab/install-config.yaml
     regexp: '^pullSecret: '
     insertafter: '^#pullSecret: '
-    line: "pullSecret: '{{ pull_secret }}'"
+    line: "pullSecret: {{pull_secret | to_json | to_json if pull_secret is mapping else pull_secret | to_json }}"
 
 - name: Copy lab install-config to SNO install directory
   ansible.builtin.copy:
