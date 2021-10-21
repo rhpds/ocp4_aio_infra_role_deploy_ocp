@@ -220,3 +220,8 @@
     src: /root/ocp-install/auth/kubeadmin-password
     dest: ../../generated/kubeadmin-password.txt
     flat: yes
+
+- name: Stop frontail 
+  containers.podman.podman_container:
+    name: frontail
+    state: stopped
