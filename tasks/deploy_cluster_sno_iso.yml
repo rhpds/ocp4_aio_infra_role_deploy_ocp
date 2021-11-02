@@ -37,6 +37,13 @@
   ansible.builtin.copy:
     src: install-config-sno.yaml
     dest: /root/lab/install-config.yaml
+  when: not ocp4_aio_use_ddns
+
+- when: ocp4_aio_use_ddns
+  name: Template install-config
+  template:
+    src: install-config-sno.yaml.j2
+    dest: /root/lab/install-config.yaml
 
 - name: Grab contents of Bastions SSH public key
   ansible.builtin.command: cat /root/.ssh/id_rsa.pub
