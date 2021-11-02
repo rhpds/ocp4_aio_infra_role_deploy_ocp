@@ -37,7 +37,6 @@
   ansible.builtin.copy:
     src: install-config-sno.yaml
     dest: /root/lab/install-config.yaml
-  when: not ocp4_aio_use_ddns
 
 - when: ocp4_aio_use_ddns
   name: Template install-config
@@ -85,6 +84,13 @@
     - edge2
   when: not embed_result.stat.exists
 
+- name: Update Cluster name for rhacm in install-config
+  ansible.builtin.replace:
+    path: /root/sno-rhacm/install-config.yaml
+    regexp: 'CLUSTER_NAME'
+    replace: "rhacm"
+  when: not embed_result.stat.exists and !ocp4_aio_use_ddns
+
 - name: Change Installation disk reference in install-config
   ansible.builtin.replace:
     path: /root/sno-{{ item }}/install-config.yaml
@@ -95,6 +101,22 @@
     - edge1
     - edge2
   when: not embed_result.stat.exists
+
+- when: ocp4_aio_use_ddns and not embed_result.stat.exists
+  name: Change first cluster DNS
+  ansible.builtin.replace:
+    path: /root/sno-rhacm/install-config.yaml
+    regexp: '^baseDomain: '
+    insertafter: '^#baseDomain: '
+    line: "baseDomain: '{{ cluster_dns_zone }}'"
+
+- when: ocp4_aio_use_ddns
+- name: Update Cluster name for rhacm in install-config
+  ansible.builtin.replace:
+    path: /root/sno-rhacm/install-config.yaml
+    regexp: 'CLUSTER_NAME'
+    replace: "{{ guid }}"
+  when: not embed_result.stat.exists and ocp4_aio_use_ddns
 
 - name: Generating ignition files
   ansible.builtin.shell: "openshift-install create single-node-ignition-config --dir=/root/sno-{{ item }}"
@@ -156,10 +178,10 @@
 - name: Add VBMC entries for AI deployments
   ansible.builtin.command: "{{ item }}"
   with_items:
-    - "vbmc add --username admin --password redhat --port 6230 --address 192.168.123.1 --libvirt-uri qemu:///system ocp4-bastion"
+    - "vbmc add --username admin --password redhat --port 6230 --address 192.168.123.1 --libvirt-uri qemu:///system ocp4-rhacm"
     - "vbmc add --username admin --password redhat --port 6231 --address 192.168.123.1 --libvirt-uri qemu:///system ocp4-edge1"
     - "vbmc add --username admin --password redhat --port 6232 --address 192.168.123.1 --libvirt-uri qemu:///system ocp4-edge2"
-    - "vbmc start ocp4-bastion"
+    - "vbmc start ocp4-rhacm"
     - "vbmc start ocp4-edge1"
     - "vbmc start ocp4-edge2"
   register: vbmc_return
