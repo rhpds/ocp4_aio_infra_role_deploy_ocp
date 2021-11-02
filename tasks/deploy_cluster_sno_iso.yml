@@ -110,7 +110,6 @@
     insertafter: '^#baseDomain: '
     line: "baseDomain: '{{ cluster_dns_zone }}'"
 
-- when: ocp4_aio_use_ddns
 - name: Update Cluster name for rhacm in install-config
   ansible.builtin.replace:
     path: /root/sno-rhacm/install-config.yaml
