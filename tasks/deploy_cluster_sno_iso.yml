@@ -89,7 +89,7 @@
     path: /root/sno-rhacm/install-config.yaml
     regexp: 'CLUSTER_NAME'
     replace: "rhacm"
-  when: not embed_result.stat.exists and !ocp4_aio_use_ddns
+  when: not embed_result.stat.exists and not ocp4_aio_use_ddns
 
 - name: Change Installation disk reference in install-config
   ansible.builtin.replace:
