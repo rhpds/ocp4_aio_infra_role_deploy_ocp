@@ -14,4 +14,5 @@ spec:
           source: data:text/plain;charset=utf-8;base64,c2VydmVyIDAudWsucG9vbC5udHAub3JnIGlidXJzdApkcmlmdGZpbGUgL3Zhci9saWIvY2hyb255L2RyaWZ0Cm1ha2VzdGVwIDEuMCAzCnJ0Y3N5bmMKbG9nZGlyIC92YXIvbG9nL2Nocm9ueQo=
         filesystem: root
         mode: 0644
+        overwrite: true
         path: /etc/chrony.conf
