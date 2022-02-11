@@ -14,6 +14,10 @@
     ocp_client_version: "{{ ocp_client_output.stdout.split('\n')[0].split(':')[1] | trim }}"
   when: ocp4_aio_deploy_type == "ipi"
 
+- set_fact:
+    ocp_client_major: "{{ ocp_client_version.split('.')[:2]|join('.') }}"
+  when: ocp4_aio_deploy_type == "ipi"
+
 - name: Check if OpenShift Installer binary exists
   stat:
     path: /root/openshift-baremetal-install
@@ -48,7 +52,18 @@
     url: "https://raw.githubusercontent.com/openshift/installer/{{ installer_commit }}/data/data/rhcos.json"
     dest: /tmp/rhcos.json
     mode: 0644
-  when: ocp4_aio_deploy_type == "ipi"
+  when: 
+    - ocp4_aio_deploy_type == "ipi"
+    - ocp_client_major is version('4.10', operator='lt', strict=True)
+
+- name: Get the RHCOS file descriptor for IPI deployments
+  ansible.builtin.get_url:
+    url: "https://raw.githubusercontent.com/openshift/installer/{{ installer_commit }}/data/data/coreos/rhcos.json"
+    dest: /tmp/rhcos.json
+    mode: 0644
+  when:
+    - ocp4_aio_deploy_type == "ipi"
+    - ocp_client_major is version('4.10', operator='ge', strict=True)
 
 - name: Slurp the RHCOS json data
   slurp:
@@ -64,22 +79,58 @@
 - name: Get RHCOS OpenStack image URL
   set_fact:
     rhcos_openstack_url: "{{ rhcos_json.baseURI }}{{ rhcos_json.images.openstack.path }}"
-  when: ocp4_aio_deploy_type == "ipi"
+  when: 
+    - ocp4_aio_deploy_type == "ipi"
+    - ocp_client_major is version('4.10', operator='lt', strict=True)
 
 - name: Get RHCOS QEMU image URL
   set_fact:
     rhcos_qemu_url: "{{ rhcos_json.baseURI }}{{ rhcos_json.images.qemu.path }}"
-  when: ocp4_aio_deploy_type == "ipi"
+  when: 
+    - ocp4_aio_deploy_type == "ipi"
+    - ocp_client_major is version('4.10', operator='lt', strict=True)
 
 - name: Get RHCOS OpenStack sha265 checksum
   set_fact:
     rhcos_openstack_sha256: "{{ rhcos_json.images.openstack.sha256 }}"
-  when: ocp4_aio_deploy_type == "ipi"
+  when: 
+    - ocp4_aio_deploy_type == "ipi"
+    - ocp_client_major is version('4.10', operator='lt', strict=True)
 
 - name: Get RHCOS QEMU sha265 checksum
   set_fact:
     rhcos_qemu_sha256: "{{ rhcos_json.images.qemu[\"uncompressed-sha256\"] }}"
-  when: ocp4_aio_deploy_type == "ipi"
+  when: 
+    - ocp4_aio_deploy_type == "ipi"
+    - ocp_client_major is version('4.10', operator='lt', strict=True)
+
+- name: Get RHCOS OpenStack image URL
+  set_fact:
+    rhcos_openstack_url: "{{ rhcos_json.architectures.x86_64.artifacts.openstack.formats[\"qcow2.gz\"].disk.location }}"
+  when: 
+    - ocp4_aio_deploy_type == "ipi"
+    - ocp_client_major is version('4.10', operator='ge', strict=True)
+
+- name: Get RHCOS QEMU image URL
+  set_fact:
+    rhcos_qemu_url: "{{ rhcos_json.architectures.x86_64.artifacts.qemu.formats[\"qcow2.gz\"].disk.location }}"
+  when:
+    - ocp4_aio_deploy_type == "ipi"
+    - ocp_client_major is version('4.10', operator='ge', strict=True)
+
+- name: Get RHCOS OpenStack sha265 checksum
+  set_fact:
+    rhcos_openstack_sha256: "{{ rhcos_json.architectures.x86_64.artifacts.openstack.formats[\"qcow2.gz\"].disk[\"uncompressed-sha256\"] }}"
+  when:
+    - ocp4_aio_deploy_type == "ipi"
+    - ocp_client_major is version('4.10', operator='ge', strict=True)
+
+- name: Get RHCOS QEMU sha265 checksum
+  set_fact:
+    rhcos_qemu_sha256: "{{ rhcos_json.architectures.x86_64.artifacts.qemu.formats[\"qcow2.gz\"].disk[\"uncompressed-sha256\"] }}"
+  when:
+    - ocp4_aio_deploy_type == "ipi"
+    - ocp_client_major is version('4.10', operator='ge', strict=True)
 
 - name: Check if RHCOS OpenStack image exists
   stat:
