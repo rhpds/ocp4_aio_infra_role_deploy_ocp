@@ -26,7 +26,6 @@ platform:
     provisioningNetworkInterface: enp1s0
     apiVIP: 192.168.123.10
     ingressVIP: 192.168.123.11
-    dnsVIP: 192.168.123.12
     bootstrapOSImage: RHCOS_QEMU_IMAGE
     clusterOSImage: RHCOS_OPENSTACK_IMAGE
     hosts:
