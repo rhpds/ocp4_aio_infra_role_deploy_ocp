@@ -57,6 +57,12 @@
     insertafter: '^#pullSecret: '
     line: "pullSecret: {{pull_secret | to_json | to_json if pull_secret is mapping else pull_secret | to_json }}"
 
+- name: Set network type in install-config
+  ansible.builtin.replace:
+    path: /root/ocp-install/install-config.yaml
+    regexp: 'NETWORK_TYPE'
+    replace: "{{ ocp4_aio_network_type }}"
+
 - name: Copy lab install-config to SNO install directory
   ansible.builtin.copy:
     remote_src: yes

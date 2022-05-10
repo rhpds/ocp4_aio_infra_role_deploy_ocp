@@ -54,6 +54,12 @@
     dest: /root/ocp-install/install-config.yaml
   when: ocp4_aio_deploy_type == "upi"
 
+- name: Set network type in install-config
+  ansible.builtin.replace:
+    path: /root/ocp-install/install-config.yaml
+    regexp: 'NETWORK_TYPE'
+    replace: "{{ ocp4_aio_network_type }}"
+
 - name: Create Ignition Configs for UPI
   ansible.builtin.command: >
     openshift-install --dir=/root/ocp-install/ create ignition-configs
