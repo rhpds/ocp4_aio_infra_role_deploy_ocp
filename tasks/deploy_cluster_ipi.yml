@@ -8,44 +8,36 @@
 - name: Get exact OpenShift version in use
   ansible.builtin.command: oc version --client=false
   register: ocp_client_output
-  when: ocp4_aio_deploy_type == "ipi"
 
 - set_fact:
     ocp_client_version: "{{ ocp_client_output.stdout.split('\n')[0].split(':')[1] | trim }}"
-  when: ocp4_aio_deploy_type == "ipi"
 
 - set_fact:
     ocp_client_major: "{{ ocp_client_version.split('.')[:2]|join('.') }}"
-  when: ocp4_aio_deploy_type == "ipi"
 
 - name: Check if OpenShift Installer binary exists
   stat:
     path: /root/openshift-baremetal-install
   register: installer_exists
-  when: ocp4_aio_deploy_type == "ipi"
 
 - name: Extract OpenShift Baremetal Installer for IPI
   ansible.builtin.command: >
     oc adm release extract --registry-config /root/pull-secret.json
     --command=openshift-baremetal-install --to /root {{ ocp_client_version }}
   when:
-    - ocp4_aio_deploy_type == "ipi"
     - not installer_exists.stat.exists
 
 - name: Get OpenShift installer commit ID for IPI
   ansible.builtin.command: /root/openshift-baremetal-install version
   register: installer_version
-  when: ocp4_aio_deploy_type == "ipi"
 
 - set_fact:
     installer_commit: "{{ installer_version.stdout_lines[1].split('commit')[1] | trim }}"
-  when: ocp4_aio_deploy_type == "ipi"
 
 - name: Check if RHCOS file descriptor exists
   stat:
     path: /root/openshift-baremetal-install
   register: installer_exists
-  when: ocp4_aio_deploy_type == "ipi"
 
 - name: Get the RHCOS file descriptor for IPI deployments
   ansible.builtin.get_url:
@@ -53,7 +45,6 @@
     dest: /tmp/rhcos.json
     mode: 0644
   when: 
-    - ocp4_aio_deploy_type == "ipi"
     - ocp_client_major is version('4.10', operator='lt', strict=True)
 
 - name: Get the RHCOS file descriptor for IPI deployments
@@ -62,81 +53,69 @@
     dest: /tmp/rhcos.json
     mode: 0644
   when:
-    - ocp4_aio_deploy_type == "ipi"
     - ocp_client_major is version('4.10', operator='ge', strict=True)
 
 - name: Slurp the RHCOS json data
   slurp:
     path: /tmp/rhcos.json
   register: rhcos_slurp
-  when: ocp4_aio_deploy_type == "ipi"
 
 - name: Decode the RHCOS json data
   set_fact:
     rhcos_json: "{{ rhcos_slurp.content | b64decode }}"
-  when: ocp4_aio_deploy_type == "ipi"
 
 - name: Get RHCOS OpenStack image URL
   set_fact:
     rhcos_openstack_url: "{{ rhcos_json.baseURI }}{{ rhcos_json.images.openstack.path }}"
   when: 
-    - ocp4_aio_deploy_type == "ipi"
     - ocp_client_major is version('4.10', operator='lt', strict=True)
 
 - name: Get RHCOS QEMU image URL
   set_fact:
     rhcos_qemu_url: "{{ rhcos_json.baseURI }}{{ rhcos_json.images.qemu.path }}"
   when: 
-    - ocp4_aio_deploy_type == "ipi"
     - ocp_client_major is version('4.10', operator='lt', strict=True)
 
 - name: Get RHCOS OpenStack sha265 checksum
   set_fact:
     rhcos_openstack_sha256: "{{ rhcos_json.images.openstack.sha256 }}"
   when: 
-    - ocp4_aio_deploy_type == "ipi"
     - ocp_client_major is version('4.10', operator='lt', strict=True)
 
 - name: Get RHCOS QEMU sha265 checksum
   set_fact:
     rhcos_qemu_sha256: "{{ rhcos_json.images.qemu[\"uncompressed-sha256\"] }}"
   when: 
-    - ocp4_aio_deploy_type == "ipi"
     - ocp_client_major is version('4.10', operator='lt', strict=True)
 
 - name: Get RHCOS OpenStack image URL
   set_fact:
     rhcos_openstack_url: "{{ rhcos_json.architectures.x86_64.artifacts.openstack.formats[\"qcow2.gz\"].disk.location }}"
   when: 
-    - ocp4_aio_deploy_type == "ipi"
     - ocp_client_major is version('4.10', operator='ge', strict=True)
 
 - name: Get RHCOS QEMU image URL
   set_fact:
     rhcos_qemu_url: "{{ rhcos_json.architectures.x86_64.artifacts.qemu.formats[\"qcow2.gz\"].disk.location }}"
   when:
-    - ocp4_aio_deploy_type == "ipi"
     - ocp_client_major is version('4.10', operator='ge', strict=True)
 
 - name: Get RHCOS OpenStack sha265 checksum
   set_fact:
     rhcos_openstack_sha256: "{{ rhcos_json.architectures.x86_64.artifacts.openstack.formats[\"qcow2.gz\"].disk[\"uncompressed-sha256\"] }}"
   when:
-    - ocp4_aio_deploy_type == "ipi"
     - ocp_client_major is version('4.10', operator='ge', strict=True)
 
 - name: Get RHCOS QEMU sha265 checksum
   set_fact:
     rhcos_qemu_sha256: "{{ rhcos_json.architectures.x86_64.artifacts.qemu.formats[\"qcow2.gz\"].disk[\"uncompressed-sha256\"] }}"
   when:
-    - ocp4_aio_deploy_type == "ipi"
     - ocp_client_major is version('4.10', operator='ge', strict=True)
 
 - name: Check if RHCOS OpenStack image exists
   stat:
     path: /var/www/html/rhcos-openstack.x86_64.qcow2.gz
   register: openstack_exists
-  when: ocp4_aio_deploy_type == "ipi"
 
 - name: Download the RHCOS OpenStack image
   ansible.builtin.get_url:
@@ -144,14 +123,12 @@
     dest: /var/www/html/rhcos-openstack.x86_64.qcow2.gz
     mode: 0644
   when:
-    - ocp4_aio_deploy_type == "ipi"
     - not openstack_exists.stat.exists
 
 - name: Check if RHCOS QEMU image exists
   stat:
     path: /var/www/html/rhcos-qemu.x86_64.qcow2.gz
   register: qemu_exists
-  when: ocp4_aio_deploy_type == "ipi"
 
 - name: Download the RHCOS QEMU image
   ansible.builtin.get_url:
@@ -159,130 +136,126 @@
     dest: /var/www/html/rhcos-qemu.x86_64.qcow2.gz
     mode: 0644
   when:
-    - ocp4_aio_deploy_type == "ipi"
     - not qemu_exists.stat.exists
 
-- name: Ensure ocp-install directory is removed
-  ansible.builtin.file:
-    path: /root/ocp-install
-    state: absent
+- name: Block for install ocp when building
+  when: build_lab|bool
+  block:
+  - name: Ensure ocp-install directory is removed
+    ansible.builtin.file:
+      path: /root/ocp-install
+      state: absent
 
-- name: Make ocp-install directory
-  ansible.builtin.file:
-    path: /root/ocp-install/
-    state: directory
+  - name: Make ocp-install directory
+    ansible.builtin.file:
+      path: /root/ocp-install/
+      state: directory
 
-- name: Copy lab install-config to ocp-install directory
-  ansible.builtin.copy:
-    remote_src: yes
-    src: /root/lab/install-config.yaml
-    dest: /root/ocp-install/install-config.yaml
+  - name: Copy lab install-config to ocp-install directory
+    ansible.builtin.copy:
+      remote_src: yes
+      src: /root/lab/install-config.yaml
+      dest: /root/ocp-install/install-config.yaml
 
-- name: Update OpenStack image location in install-config
-  ansible.builtin.replace:
-    path: /root/ocp-install/install-config.yaml
-    regexp: 'RHCOS_OPENSTACK_IMAGE'
-    replace: "http://192.168.123.100:81/rhcos-openstack.x86_64.qcow2.gz?sha256={{ rhcos_openstack_sha256 }}"
-  when: ocp4_aio_deploy_type == "ipi"
+  - name: Update OpenStack image location in install-config
+    ansible.builtin.replace:
+      path: /root/ocp-install/install-config.yaml
+      regexp: 'RHCOS_OPENSTACK_IMAGE'
+      replace: "http://192.168.123.100:81/rhcos-openstack.x86_64.qcow2.gz?sha256={{ rhcos_openstack_sha256 }}"
+    when: ocp4_aio_deploy_type == "ipi"
 
-- name: Update OpenStack image location in install-config
-  ansible.builtin.replace:
-    path: /root/ocp-install/install-config.yaml
-    regexp: 'RHCOS_QEMU_IMAGE'
-    replace: "http://192.168.123.100:81/rhcos-qemu.x86_64.qcow2.gz?sha256={{ rhcos_qemu_sha256 }}"
-  when: ocp4_aio_deploy_type == "ipi"
+  - name: Update OpenStack image location in install-config
+    ansible.builtin.replace:
+      path: /root/ocp-install/install-config.yaml
+      regexp: 'RHCOS_QEMU_IMAGE'
+      replace: "http://192.168.123.100:81/rhcos-qemu.x86_64.qcow2.gz?sha256={{ rhcos_qemu_sha256 }}"
+    when: ocp4_aio_deploy_type == "ipi"
 
-- name: Set network type in install-config
-  ansible.builtin.replace:
-    path: /root/ocp-install/install-config.yaml
-    regexp: 'NETWORK_TYPE'
-    replace: "{{ ocp4_aio_network_type }}"
+  - name: Set network type in install-config
+    ansible.builtin.replace:
+      path: /root/ocp-install/install-config.yaml
+      regexp: 'NETWORK_TYPE'
+      replace: "{{ ocp4_aio_network_type }}"
 
-- name: Make a backup of the install-config from ocp-install directory
-  ansible.builtin.copy:
-    remote_src: yes
-    src: /root/ocp-install/install-config.yaml
-    dest: /root/install-config.yaml.bak
+  - name: Make a backup of the install-config from ocp-install directory
+    ansible.builtin.copy:
+      remote_src: yes
+      src: /root/ocp-install/install-config.yaml
+      dest: /root/install-config.yaml.bak
 
-- name: Create OpenShift manifests for IPI
-  ansible.builtin.command: >
-    /root/openshift-baremetal-install
-    --dir=/root/ocp-install/ create manifests
-  when: ocp4_aio_deploy_type == "ipi"
+  - name: Create OpenShift manifests for IPI
+    ansible.builtin.command: >
+      /root/openshift-baremetal-install
+      --dir=/root/ocp-install/ create manifests
+    when: ocp4_aio_deploy_type == "ipi"
 
-- name: Copy over MachineConfigs for chrony and networking
-  ansible.builtin.copy:
-    src: "{{ item }}"
-    dest: /root/ocp-install/openshift
-  loop:
-    - "99_masters-chrony-configuration.yaml"
-    - "99_workers-chrony-configuration.yaml"
-    - "97_workers_empty_enp3s0.yaml"
+  - name: Copy over MachineConfigs for chrony and networking
+    ansible.builtin.copy:
+      src: "{{ item }}"
+      dest: /root/ocp-install/openshift
+    loop:
+      - "99_masters-chrony-configuration.yaml"
+      - "99_workers-chrony-configuration.yaml"
+      - "97_workers_empty_enp3s0.yaml"
 
-- name: Copy over empty enp3s0 for masters on compact install
-  ansible.builtin.copy:
-    src: 97_masters_empty_enp3s0.yaml
-    dest: /root/ocp-install/openshift
-  when: ocp4_aio_deploy_compact | bool
+  - name: Copy over empty enp3s0 for masters on compact install
+    ansible.builtin.copy:
+      src: 97_masters_empty_enp3s0.yaml
+      dest: /root/ocp-install/openshift
+    when: ocp4_aio_deploy_compact | bool
 
-- name: Pull required images for OpenShift logging
-  containers.podman.podman_image:
-    name: "quay.io/roxenham/frontail"
+  - name: Pull required images for OpenShift logging
+    containers.podman.podman_image:
+      name: "quay.io/roxenham/frontail"
 
-- name: Run frontail for OpenShift installation log
-  containers.podman.podman_container:
-    name: frontail
-    state: started
-    image: quay.io/roxenham/frontail
-    volume: "/root/ocp-install:/log/"
-    net: host
-    privileged: true
-    command: "/log/.openshift_install.log -n 6000"
+  - name: Run frontail for OpenShift installation log
+    containers.podman.podman_container:
+      name: frontail
+      state: started
+      image: quay.io/roxenham/frontail
+      volume: "/root/ocp-install:/log/"
+      net: host
+      privileged: true
+      command: "/log/.openshift_install.log -n 6000"
 
-- name: Print OpenShift Installation log location
-  vars:
-    msg: |
-      You can watch the OpenShift installation logs by opening the following URL:
+  - name: Print OpenShift Installation log location
+    vars:
+      msg: |
+        You can watch the OpenShift installation logs by opening the following URL:
 
-      http://{{ aio_host_ip_address }}:9001
-  debug:
-    msg: "{{ msg.split('\n') }}"
+        http://{{ aio_host_ip_address }}:9001
+    debug:
+      msg: "{{ msg.split('\n') }}"
 
-# Ignore errors here to avoid timeout issues and run wait-for install-complete
-- name: Run OpenShift Installation for IPI with 1hr timeout
-  ansible.builtin.command: >
-    /root/openshift-baremetal-install
-    --dir=/root/ocp-install/ --log-level=debug
-    create cluster
-  when: ocp4_aio_deploy_type == "ipi"
-  ignore_errors: true
-  register: ipi_install
-
-- name: Wait for install-complete for IPI when first failed
-  ansible.builtin.command: >
-    /root/openshift-baremetal-install
-    --dir=/root/ocp-install/ --log-level=debug
-    wait-for install-complete
-  when:
-    - ocp4_aio_deploy_type == "ipi"
-    - ipi_install is failed
-
-- name: Make .kube directory
-  ansible.builtin.file:
-    path: /root/.kube/
-    state: directory
-
-- name: Copy kubeconfig from ocp-install directory
-  ansible.builtin.copy:
-    remote_src: yes
-    src: /root/ocp-install/auth/kubeconfig
-    dest: /root/.kube/config
-
-- name: Restart squid to fix DNS propagation
-  ansible.builtin.systemd:
-    name: squid
-    state: restarted
-    enabled: yes
+  # Ignore errors here to avoid timeout issues and run wait-for install-complete
+  - name: Run OpenShift Installation for IPI with 1hr timeout
+    ansible.builtin.command: >
+      /root/openshift-baremetal-install
+      --dir=/root/ocp-install/ --log-level=debug
+      create cluster
+    when: ocp4_aio_deploy_type == "ipi"
+    async: 6000
+    poll: 0
+    register: ipi_install
+  
+  - name: Check installation
+    async_status:
+      jid: "{{ ipi_install.ansible_job_id }}"
+    register: job_result
+    until: job_result.finished
+    retries: 100
+    delay: 60
+  
+  - name: Make .kube directory
+    ansible.builtin.file:
+      path: /root/.kube/
+      state: directory
+  
+  - name: Copy kubeconfig from ocp-install directory
+    ansible.builtin.copy:
+      remote_src: yes
+      src: /root/ocp-install/auth/kubeconfig
+      dest: /root/.kube/config
 
 - name: Get cluster password as variable
   slurp:
