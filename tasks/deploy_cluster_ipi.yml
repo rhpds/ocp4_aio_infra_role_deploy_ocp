@@ -196,13 +196,6 @@
     loop:
       - "99_masters-chrony-configuration.yaml"
       - "99_workers-chrony-configuration.yaml"
-      - "97_workers_empty_enp3s0.yaml"
-
-  - name: Copy over empty enp3s0 for masters on compact install
-    ansible.builtin.copy:
-      src: 97_masters_empty_enp3s0.yaml
-      dest: /root/ocp-install/openshift
-    when: ocp4_aio_deploy_compact | bool
 
   - name: Pull required images for OpenShift logging
     containers.podman.podman_image:
