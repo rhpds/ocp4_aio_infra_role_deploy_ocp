@@ -16,7 +16,7 @@ networking:
   clusterNetwork:
   - cidr: 10.128.0.0/14
     hostPrefix: 23
-  networkType: "{{ ocp4_aio_network_type }}"
+  networkType: NETWORK_TYPE
   serviceNetwork:
   - 172.30.0.0/16
   machineCIDR: 192.168.123.0/24
