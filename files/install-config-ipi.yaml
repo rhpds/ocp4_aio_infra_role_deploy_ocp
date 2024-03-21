@@ -16,7 +16,7 @@ networking:
   clusterNetwork:
   - cidr: 10.128.0.0/14
     hostPrefix: 23
-  networkType: OpenShiftSDN
+  networkType: "{{ ocp4_aio_network_type }}"
   serviceNetwork:
   - 172.30.0.0/16
   machineCIDR: 192.168.123.0/24
