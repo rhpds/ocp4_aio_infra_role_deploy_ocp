@@ -1,2 +1,2 @@
-ocp4_aio_network_type: OpenShiftSDN
+ocp4_aio_network_type: OVNKubernetes
 build_lab: false
