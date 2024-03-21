@@ -171,12 +171,6 @@
       replace: "http://192.168.123.100:81/rhcos-qemu.x86_64.qcow2.gz?sha256={{ rhcos_qemu_sha256 }}"
     when: ocp4_aio_deploy_type == "ipi"
 
-  - name: Set network type in install-config
-    ansible.builtin.replace:
-      path: /root/ocp-install/install-config.yaml
-      regexp: 'NETWORK_TYPE'
-      replace: "{{ ocp4_aio_network_type }}"
-
   - name: Make a backup of the install-config from ocp-install directory
     ansible.builtin.copy:
       remote_src: yes
