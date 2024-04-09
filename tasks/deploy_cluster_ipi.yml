@@ -9,10 +9,13 @@
   ansible.builtin.command: oc version --client=false
   register: ocp_client_output
 
-- name: Set facts
+- name: Set fact ocp_client_version
   ansible.builtin.set_fact:
     ocp_client_version: "{{ ocp_client_output.stdout.split('\n')[0].split(':')[1] | trim }}"
-    ocp_client_major: "{{ ocp_client_version.split('.')[:2]|join('.') }}"
+
+- name: Set fact ocp_client_major
+  ansible.builtin.set_fact:
+    ocp_client_major: "{{ ocp_client_version.split('.')[:2] | join('.') }}"
 
 - name: Check if OpenShift Installer binary exists
   ansible.builtin.stat:
