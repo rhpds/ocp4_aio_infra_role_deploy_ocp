@@ -162,13 +162,6 @@
       dest: /root/ocp-install/install-config.yaml
       mode: "0664"
 
-  - name: Replace baseDomain in install-config.yaml
-    when: ocp4_aio_deploy_ocp_update_basedomain | default(false) | bool
-    replace:
-      path: /root/ocp-install/install-config.yaml
-      regexp: '^baseDomain:.*$'
-      replace: 'baseDomain: {{ cluster_dns_zone }}'
-
   - name: Update OpenStack image location in install-config
     ansible.builtin.replace:
       path: /root/ocp-install/install-config.yaml
