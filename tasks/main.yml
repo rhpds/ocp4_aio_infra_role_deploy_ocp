@@ -1,3 +1,3 @@
 - name: Deploy IPI cluster
-  import_tasks: deploy_cluster_ipi.yml
   when: ocp4_aio_deploy_type == 'ipi'
+  ansible.builtin.import_tasks: deploy_cluster_ipi.yml

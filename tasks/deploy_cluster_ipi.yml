@@ -1,161 +1,151 @@
 ---
 # vim: set ft=ansible:
-
 - name: Make sure that Bastion machine is running
-  wait_for_connection:
+  ansible.builtin.wait_for_connection:
     timeout: 240
 
 - name: Get exact OpenShift version in use
   ansible.builtin.command: oc version --client=false
   register: ocp_client_output
 
-- set_fact:
+- name: Set ocp_client_version fact
+  ansible.builtin.set_fact:
     ocp_client_version: "{{ ocp_client_output.stdout.split('\n')[0].split(':')[1] | trim }}"
 
-- set_fact:
-    ocp_client_major: "{{ ocp_client_version.split('.')[:2]|join('.') }}"
+- name: Set ocp_client_major_fact
+  ansible.builtin.set_fact:
+    ocp_client_major: "{{ ocp_client_version.split('.')[:2] | join('.') }}"
 
 - name: Check if OpenShift Installer binary exists
-  stat:
+  ansible.builtin.stat:
     path: /root/openshift-baremetal-install
   register: installer_exists
 
 - name: Extract OpenShift Baremetal Installer for IPI
+  when: not installer_exists.stat.exists
   ansible.builtin.command: >
     oc adm release extract --registry-config /root/pull-secret.json
     --command=openshift-baremetal-install --to /root {{ ocp_client_version }}
-  when:
-    - not installer_exists.stat.exists
 
 - name: Get OpenShift installer commit ID for IPI
   ansible.builtin.command: /root/openshift-baremetal-install version
   register: installer_version
 
-- set_fact:
+- name: Set installer_commit fact
+  ansible.builtin.set_fact:
     installer_commit: "{{ installer_version.stdout_lines[1].split('commit')[1] | trim }}"
 
 - name: Check if RHCOS file descriptor exists
-  stat:
+  ansible.builtin.stat:
     path: /root/openshift-baremetal-install
   register: installer_exists
 
-- name: Get the RHCOS file descriptor for IPI deployments
+- name: Get the RHCOS file descriptor for IPI deployments before 4.10
+  when: ocp_client_major is version('4.10', operator='lt', strict=true)
   ansible.builtin.get_url:
     url: "https://raw.githubusercontent.com/openshift/installer/{{ installer_commit }}/data/data/rhcos.json"
     dest: /tmp/rhcos.json
-    mode: 0644
-  when: 
-    - ocp_client_major is version('4.10', operator='lt', strict=True)
+    mode: "0644"
 
-- name: Get the RHCOS file descriptor for IPI deployments
+- name: Get the RHCOS file descriptor for IPI deployments starting with 4.10
+  when: ocp_client_major is version('4.10', operator='ge', strict=true)
   ansible.builtin.get_url:
     url: "https://raw.githubusercontent.com/openshift/installer/{{ installer_commit }}/data/data/coreos/rhcos.json"
     dest: /tmp/rhcos.json
-    mode: 0644
-  when:
-    - ocp_client_major is version('4.10', operator='ge', strict=True)
+    mode: "0644"
 
 - name: Slurp the RHCOS json data
-  slurp:
+  ansible.builtin.slurp:
     path: /tmp/rhcos.json
   register: rhcos_slurp
 
 - name: Decode the RHCOS json data
-  set_fact:
+  ansible.builtin.set_fact:
     rhcos_json: "{{ rhcos_slurp.content | b64decode }}"
 
-- name: Get RHCOS OpenStack image URL
-  set_fact:
-    rhcos_openstack_url: "{{ rhcos_json.baseURI }}{{ rhcos_json.images.openstack.path }}"
-  when: 
-    - ocp_client_major is version('4.10', operator='lt', strict=True)
+- name: Set Facts for OCP before 4.10
+  when: ocp_client_major is version('4.10', operator='lt', strict=true)
+  block:
+  - name: Get RHCOS OpenStack image URL before 4.10
+    ansible.builtin.set_fact:
+      rhcos_openstack_url: "{{ rhcos_json.baseURI }}{{ rhcos_json.images.openstack.path }}"
 
-- name: Get RHCOS QEMU image URL
-  set_fact:
-    rhcos_qemu_url: "{{ rhcos_json.baseURI }}{{ rhcos_json.images.qemu.path }}"
-  when: 
-    - ocp_client_major is version('4.10', operator='lt', strict=True)
+  - name: Get RHCOS QEMU image URL before 4.10
+    when: ocp_client_major is version('4.10', operator='lt', strict=true)
+    ansible.builtin.set_fact:
+      rhcos_qemu_url: "{{ rhcos_json.baseURI }}{{ rhcos_json.images.qemu.path }}"
 
-- name: Get RHCOS OpenStack sha265 checksum
-  set_fact:
-    rhcos_openstack_sha256: "{{ rhcos_json.images.openstack.sha256 }}"
-  when: 
-    - ocp_client_major is version('4.10', operator='lt', strict=True)
+  - name: Get RHCOS OpenStack sha265 checksum before 4.10
+    ansible.builtin.set_fact:
+      rhcos_openstack_sha256: "{{ rhcos_json.images.openstack.sha256 }}"
 
-- name: Get RHCOS QEMU sha265 checksum
-  set_fact:
-    rhcos_qemu_sha256: "{{ rhcos_json.images.qemu[\"uncompressed-sha256\"] }}"
-  when: 
-    - ocp_client_major is version('4.10', operator='lt', strict=True)
+  - name: Get RHCOS QEMU sha265 checksum
+    ansible.builtin.set_fact:
+      rhcos_qemu_sha256: "{{ rhcos_json.images.qemu[\"uncompressed-sha256\"] }}"
 
-- name: Get RHCOS OpenStack image URL
-  set_fact:
-    rhcos_openstack_url: "{{ rhcos_json.architectures.x86_64.artifacts.openstack.formats[\"qcow2.gz\"].disk.location }}"
-  when: 
-    - ocp_client_major is version('4.10', operator='ge', strict=True)
+- name: Set Facts for OCP starting with 4.10
+  when: ocp_client_major is version('4.10', operator='ge', strict=true)
+  block:
+  - name: Get RHCOS OpenStack image URL
+    ansible.builtin.set_fact:
+      rhcos_openstack_url: "{{ rhcos_json.architectures.x86_64.artifacts.openstack.formats[\"qcow2.gz\"].disk.location }}"  
 
-- name: Get RHCOS QEMU image URL
-  set_fact:
-    rhcos_qemu_url: "{{ rhcos_json.architectures.x86_64.artifacts.qemu.formats[\"qcow2.gz\"].disk.location }}"
-  when:
-    - ocp_client_major is version('4.10', operator='ge', strict=True)
+  - name: Get RHCOS QEMU image URL
+    ansible.builtin.set_fact:
+      rhcos_qemu_url: "{{ rhcos_json.architectures.x86_64.artifacts.qemu.formats[\"qcow2.gz\"].disk.location }}"
 
-- name: Get RHCOS OpenStack sha265 checksum
-  set_fact:
-    rhcos_openstack_sha256: "{{ rhcos_json.architectures.x86_64.artifacts.openstack.formats[\"qcow2.gz\"].disk[\"uncompressed-sha256\"] }}"
-  when:
-    - ocp_client_major is version('4.10', operator='ge', strict=True)
+  - name: Get RHCOS OpenStack sha265 checksum
+    ansible.builtin.set_fact:
+      rhcos_openstack_sha256: "{{ rhcos_json.architectures.x86_64.artifacts.openstack.formats[\"qcow2.gz\"].disk[\"uncompressed-sha256\"] }}"
 
-- name: Get RHCOS QEMU sha265 checksum
-  set_fact:
-    rhcos_qemu_sha256: "{{ rhcos_json.architectures.x86_64.artifacts.qemu.formats[\"qcow2.gz\"].disk[\"uncompressed-sha256\"] }}"
-  when:
-    - ocp_client_major is version('4.10', operator='ge', strict=True)
+  - name: Get RHCOS QEMU sha265 checksum
+    ansible.builtin.set_fact:
+      rhcos_qemu_sha256: "{{ rhcos_json.architectures.x86_64.artifacts.qemu.formats[\"qcow2.gz\"].disk[\"uncompressed-sha256\"] }}"
 
 - name: Check if RHCOS OpenStack image exists
-  stat:
+  ansible.builtin.stat:
     path: /var/www/html/rhcos-openstack.x86_64.qcow2.gz
   register: openstack_exists
 
 - name: Download the RHCOS OpenStack image
+  when: not openstack_exists.stat.exists
   ansible.builtin.get_url:
     url: "{{ rhcos_openstack_url }}"
     dest: /var/www/html/rhcos-openstack.x86_64.qcow2.gz
-    mode: 0644
-  when:
-    - not openstack_exists.stat.exists
+    mode: "0644"
 
 - name: Check if RHCOS QEMU image exists
-  stat:
+  ansible.builtin.stat:
     path: /var/www/html/rhcos-qemu.x86_64.qcow2.gz
   register: qemu_exists
 
 - name: Download the RHCOS QEMU image
+  when: not qemu_exists.stat.exists
   ansible.builtin.get_url:
     url: "{{ rhcos_qemu_url }}"
     dest: /var/www/html/rhcos-qemu.x86_64.qcow2.gz
-    mode: 0644
-  when:
-    - not qemu_exists.stat.exists
+    mode: "0644"
 
 - name: Block for install ocp when building
-  when: build_lab|bool
+  when: build_lab | bool
   block:
   - name: Ensure ocp-install directory is removed
     ansible.builtin.file:
       path: /root/ocp-install
       state: absent
 
-  - name: Make ocp-install directory
+  - name: Create ocp-install directory
     ansible.builtin.file:
       path: /root/ocp-install/
       state: directory
+      mode: "0775"
 
   - name: Copy lab install-config to ocp-install directory
     ansible.builtin.copy:
-      remote_src: yes
+      remote_src: true
       src: /root/lab/install-config.yaml
       dest: /root/ocp-install/install-config.yaml
+      mode: "0664"
 
   - name: Update OpenStack image location in install-config
     ansible.builtin.replace:
@@ -173,23 +163,25 @@
 
   - name: Make a backup of the install-config from ocp-install directory
     ansible.builtin.copy:
-      remote_src: yes
+      remote_src: true
       src: /root/ocp-install/install-config.yaml
       dest: /root/install-config.yaml.bak
+      mode: "0664"
 
   - name: Create OpenShift manifests for IPI
+    when: ocp4_aio_deploy_type == "ipi"
     ansible.builtin.command: >
       /root/openshift-baremetal-install
       --dir=/root/ocp-install/ create manifests
-    when: ocp4_aio_deploy_type == "ipi"
 
   - name: Copy over MachineConfigs for chrony and networking
     ansible.builtin.copy:
       src: "{{ item }}"
       dest: /root/ocp-install/openshift
+      mode: "0664"
     loop:
-      - "99_masters-chrony-configuration.yaml"
-      - "99_workers-chrony-configuration.yaml"
+    - "99_masters-chrony-configuration.yaml"
+    - "99_workers-chrony-configuration.yaml"
 
   - name: Pull required images for OpenShift logging
     containers.podman.podman_image:
@@ -211,7 +203,7 @@
         You can watch the OpenShift installation logs by opening the following URL:
 
         http://{{ aio_host_ip_address }}:9001
-    debug:
+    ansible.builtin.debug:
       msg: "{{ msg.split('\n') }}"
 
   # Ignore errors here to avoid timeout issues and run wait-for install-complete
@@ -224,43 +216,45 @@
     async: 6000
     poll: 0
     register: ipi_install
-  
+
   - name: Check installation
-    async_status:
+    ansible.builtin.async_status:
       jid: "{{ ipi_install.ansible_job_id }}"
     register: job_result
     until: job_result.finished
     retries: 100
     delay: 60
-  
-  - name: Make .kube directory
+
+  - name: Create .kube directory
     ansible.builtin.file:
       path: /root/.kube/
       state: directory
-  
+      mode: "0775"
+
   - name: Copy kubeconfig from ocp-install directory
     ansible.builtin.copy:
-      remote_src: yes
+      remote_src: true
       src: /root/ocp-install/auth/kubeconfig
       dest: /root/.kube/config
+      mode: "0664"
 
 - name: Get cluster password as variable
-  slurp:
+  ansible.builtin.slurp:
     src: /root/ocp-install/auth/kubeadmin-password
   register: kubeadmin_password
 
 - name: Create object to store kube passwd
-  add_host:
+  ansible.builtin.add_host:
     name: "kube_holder"
-    kubeadmin_password:  "{{ kubeadmin_password['content'] | b64decode }}"
+    kubeadmin_password: "{{ kubeadmin_password['content'] | b64decode }}"
 
 - name: Pull kubeadmin-password to local generated
   ansible.builtin.fetch:
     src: /root/ocp-install/auth/kubeadmin-password
     dest: ../../generated/kubeadmin-password.txt
-    flat: yes
+    flat: true
 
-- name: Stop frontail 
+- name: Stop frontail
   containers.podman.podman_container:
     name: frontail
     state: stopped
