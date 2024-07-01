@@ -112,6 +112,7 @@
   ansible.builtin.get_url:
     url: "{{ rhcos_openstack_url }}"
     dest: /var/www/html/rhcos-openstack.x86_64.qcow2.gz
+    validate_certs: false
     mode: "0644"
 
 - name: Check if RHCOS QEMU image exists
@@ -124,6 +125,7 @@
   ansible.builtin.get_url:
     url: "{{ rhcos_qemu_url }}"
     dest: /var/www/html/rhcos-qemu.x86_64.qcow2.gz
+    validate_certs: false
     mode: "0644"
 
 - name: Block for install ocp when building
