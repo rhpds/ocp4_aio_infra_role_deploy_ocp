@@ -124,6 +124,7 @@
   ansible.builtin.get_url:
     url: "{{ rhcos_openstack_url }}"
     dest: /var/www/html/rhcos-openstack.x86_64.qcow2.gz
+    validate_certs: false
     mode: "0644"
   when:
     - not openstack_exists.stat.exists
@@ -137,6 +138,7 @@
   ansible.builtin.get_url:
     url: "{{ rhcos_qemu_url }}"
     dest: /var/www/html/rhcos-qemu.x86_64.qcow2.gz
+    validate_certs: false
     mode: "0644"
   when:
     - not qemu_exists.stat.exists
